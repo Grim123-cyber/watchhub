@@ -1,9 +1,11 @@
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'theme_controller.dart';
 import 'screens/splash/splash_screen.dart';
+import 'theme/watchhub_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,84 +30,18 @@ class WatchHubApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-
           title: 'WatchHub',
 
+          // Preserve the user's light/dark mode selection.
           themeMode: themeController.themeMode,
 
-          // LIGHT THEME
-          theme: ThemeData(
-            brightness: Brightness.light,
-            primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: Colors.grey.shade100,
+          // Purple light theme.
+          theme: WatchHubTheme.lightTheme,
 
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
+          // Purple dark theme.
+          darkTheme: WatchHubTheme.darkTheme,
 
-            cardColor: Colors.white,
-
-            inputDecorationTheme:
-                const InputDecorationTheme(
-              filled: true,
-              fillColor: Colors.white,
-            ),
-
-            elevatedButtonTheme:
-                ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
-            ),
-
-            bottomNavigationBarTheme:
-                const BottomNavigationBarThemeData(
-              backgroundColor: Colors.white,
-              selectedItemColor: Colors.blue,
-              unselectedItemColor: Colors.grey,
-            ),
-          ),
-
-          // DARK THEME
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            scaffoldBackgroundColor:
-                const Color(0xFF121212),
-
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1E1E1E),
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-
-            cardColor: const Color(0xFF1E1E1E),
-
-            inputDecorationTheme:
-                const InputDecorationTheme(
-              filled: true,
-              fillColor: Color(0xFF1E1E1E),
-            ),
-
-            elevatedButtonTheme:
-                ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
-            ),
-
-            bottomNavigationBarTheme:
-                const BottomNavigationBarThemeData(
-              backgroundColor: Color(0xFF1E1E1E),
-              selectedItemColor: Colors.blue,
-              unselectedItemColor: Colors.grey,
-            ),
-          ),
-
-          // PASS THE THEME CONTROLLER TO SPLASH SCREEN
+          // Keep the existing app entry point.
           home: const SplashScreen(),
         );
       },

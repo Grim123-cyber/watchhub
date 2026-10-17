@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 
 import '../product_details/product_details_screen.dart';
 
+const Color productsPurple = Color(0xFF4C1D95);
+const Color productsBrightPurple = Color(0xFF7C3AED);
+const Color productsPalePurple = Color(0xFFF5F3FF);
+
 class ProductsScreen extends StatefulWidget {
   final String? initialCategory;
   final String? initialSearch;
@@ -20,6 +24,7 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen> {
   final FirebaseFirestore db = FirebaseFirestore.instance;
+
   final TextEditingController searchController =
       TextEditingController();
 
@@ -59,14 +64,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
       return price.toInt();
     }
 
-    return int.tryParse(price.toString()) ?? 0;
+    return int.tryParse(price?.toString() ?? '') ?? 0;
   }
 
   String formatPrice(int price) {
     return '₦${price.toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => ',',
-    )}';
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => ',',
+        )}';
   }
 
   bool matchesCategory(String productCategory) {
@@ -102,49 +107,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
         description.contains(searchText);
   }
 
-  Widget buildProductImage(String imageUrl, double height) {
-    return Container(
-      height: height,
-      width: double.infinity,
-      color: const Color(0xFFF6F7F9),
-      alignment: Alignment.center,
-      child: imageUrl.trim().isEmpty
-          ? const Icon(
-              Icons.watch_outlined,
-              size: 42,
-              color: Colors.blueGrey,
-            )
-          : Image.network(
-              imageUrl,
-              width: double.infinity,
-              height: height,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, progress) {
-                if (progress == null) {
-                  return child;
-                }
-
-                return const Center(
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.watch_outlined,
-                  size: 42,
-                  color: Colors.blueGrey,
-                );
-              },
-            ),
-    );
-  }
-
   void openProductDetails(
     String productId,
     Map<String, dynamic> data,
@@ -164,84 +126,135 @@ class _ProductsScreenState extends State<ProductsScreen> {
     );
   }
 
+  // Responsive product image with a placeholder and loading indicator.
+  Widget buildProductImage(String imageUrl, double imageHeight) {
+    return SizedBox(
+      width: double.infinity,
+      height: imageHeight,
+      child: ColoredBox(
+        color: productsPalePurple,
+        child: imageUrl.trim().isEmpty
+            ? const Center(
+                child: Icon(
+                  Icons.watch_outlined,
+                  size: 48,
+                  color: productsBrightPurple,
+                ),
+              )
+            : Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: imageHeight,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) {
+                    return child;
+                  }
+
+                  return const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: productsBrightPurple,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.watch_outlined,
+                      size: 48,
+                      color: productsBrightPurple,
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+  }
+
   Widget buildProductCard(
     String productId,
     Map<String, dynamic> data,
     double imageHeight,
   ) {
-    final name = (data['name'] ?? 'Watch').toString();
-    final category = (data['category'] ?? 'Watch').toString();
-    final imageUrl = (data['imageUrl'] ?? '').toString();
-    final price = getPrice(data['price']);
+    final String name = (data['name'] ?? 'Watch').toString();
+    final String category = (data['category'] ?? 'Watch').toString();
+    final String imageUrl = (data['imageUrl'] ?? '').toString();
+    final int price = getPrice(data['price']);
 
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
-      elevation: 1.5,
-      shadowColor: Colors.black12,
+      elevation: 2,
+      shadowColor: productsPurple.withValues(alpha: 0.08),
+      color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(
-          color: Color(0xFFE8EAED),
-          width: 0.6,
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(
+          color: productsBrightPurple.withValues(alpha: 0.13),
         ),
       ),
       child: InkWell(
         onTap: () => openProductDetails(productId, data),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             buildProductImage(imageUrl, imageHeight),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(9, 8, 9, 9),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    category.toUpperCase(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.blueGrey,
-                      fontSize: 10,
-                      letterSpacing: 0.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-
-                  const SizedBox(height: 3),
-
-                  SizedBox(
-                    height: 34,
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Text(
-                        name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          height: 1.25,
-                          fontWeight: FontWeight.w600,
-                        ),
+            // The content uses its natural height instead of an
+            // artificially restricted title box.
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: productsBrightPurple,
+                        fontSize: 10,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 4),
+                    const SizedBox(height: 5),
 
-                  Text(
-                    formatPrice(price),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF16834A),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                    Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF241638),
+                        fontSize: 13,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+
+                    const Spacer(),
+
+                    const SizedBox(height: 5),
+
+                    Text(
+                      formatPrice(price),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: productsPurple,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -262,25 +275,27 @@ class _ProductsScreenState extends State<ProductsScreen> {
           children: [
             Icon(
               Icons.watch_off_outlined,
-              size: 52,
+              size: 54,
               color: Colors.grey.shade400,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Text(
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 17,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: productsPurple,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               details,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontSize: 13,
+                height: 1.5,
               ),
             ),
           ],
@@ -291,59 +306,75 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   Widget buildProductGrid(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> products,
-    double availableWidth,
   ) {
-    final double gridWidth =
-        availableWidth > 1400 ? 1400 : availableWidth;
-
-    final int columnCount;
-
-    if (gridWidth >= 1100) {
-      columnCount = 5;
-    } else if (gridWidth >= 850) {
-      columnCount = 4;
-    } else if (gridWidth >= 560) {
-      columnCount = 3;
-    } else {
-      columnCount = 2;
-    }
-
-    const double horizontalPadding = 8;
-    const double spacing = 10;
-
-    final double cardWidth =
-        (gridWidth -
-            (horizontalPadding * 2) -
-            (spacing * (columnCount - 1))) /
-        columnCount;
-
-    final double imageHeight =
-        (cardWidth * 0.72).clamp(96.0, 140.0).toDouble();
-
-    // Calculate the card height from its actual contents.
-    // This avoids large areas of unused space beneath each watch.
-    final double cardHeight = imageHeight + 94;
-    final double cardAspectRatio = cardWidth / cardHeight;
-
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1400),
-        child: GridView.builder(
-          padding: const EdgeInsets.all(horizontalPadding),
-          itemCount: products.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columnCount,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: 12,
-            childAspectRatio: cardAspectRatio,
-          ),
-          itemBuilder: (context, index) {
-            final doc = products[index];
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double availableWidth = constraints.maxWidth;
 
-            return buildProductCard(
-              doc.id,
-              doc.data(),
-              imageHeight,
+            // Adjust the number of columns to the available width.
+            final int columnCount;
+
+            if (availableWidth >= 1200) {
+              columnCount = 5;
+            } else if (availableWidth >= 900) {
+              columnCount = 4;
+            } else if (availableWidth >= 600) {
+              columnCount = 3;
+            } else {
+              columnCount = 2;
+            }
+
+            const double horizontalPadding = 10;
+            const double spacing = 12;
+
+            final double cardWidth =
+                (availableWidth -
+                    (horizontalPadding * 2) -
+                    (spacing * (columnCount - 1))) /
+                columnCount;
+
+            final double imageHeight =
+                (cardWidth * 0.70).clamp(100.0, 190.0).toDouble();
+
+            // Reserve additional space for names, prices, padding,
+            // and larger system font sizes to prevent bottom overflow.
+            final double textScale =
+                MediaQuery.textScalerOf(context)
+                    .scale(1.0)
+                    .clamp(1.0, 1.8)
+                    .toDouble();
+
+            final double cardHeight = imageHeight + (145 * textScale);
+
+            return GridView.builder(
+              padding: const EdgeInsets.fromLTRB(
+                horizontalPadding,
+                12,
+                horizontalPadding,
+                24,
+              ),
+              itemCount: products.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columnCount,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: 14,
+
+                // Explicit height prevents the old aspect-ratio
+                // calculation from squeezing product card contents.
+                mainAxisExtent: cardHeight,
+              ),
+              itemBuilder: (context, index) {
+                final document = products[index];
+
+                return buildProductCard(
+                  document.id,
+                  document.data(),
+                  imageHeight,
+                );
+              },
             );
           },
         ),
@@ -354,8 +385,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: const Color(0xFFF9F7FC),
       appBar: AppBar(
+        backgroundColor: productsPurple,
+        foregroundColor: Colors.white,
         title: const Text(
           'Our Watches',
           style: TextStyle(
@@ -371,7 +404,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
             child: SizedBox(
-              height: 46,
+              height: 48,
               child: TextField(
                 controller: searchController,
                 onChanged: (value) {
@@ -381,7 +414,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search watches...',
                   hintStyle: const TextStyle(fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, size: 21),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 21,
+                    color: productsBrightPurple,
+                  ),
                   suffixIcon: searchController.text.isEmpty
                       ? null
                       : IconButton(
@@ -399,21 +436,22 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     horizontal: 12,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE3E6EA),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE3E6EA),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(
-                      color: Colors.blue,
+                      color: productsBrightPurple,
+                      width: 1.6,
                     ),
                   ),
                 ),
@@ -421,27 +459,41 @@ class _ProductsScreenState extends State<ProductsScreen> {
             ),
           ),
 
+          // Horizontal scrolling keeps all category options accessible
+          // on narrow phone screens.
           SizedBox(
-            height: 44,
+            height: 48,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               itemCount: categories.length,
               itemBuilder: (context, index) {
-                final category = categories[index];
-                final isSelected = selectedCategory == category;
+                final String category = categories[index];
+                final bool isSelected = selectedCategory == category;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   child: ChoiceChip(
-                    label: Text(
-                      category,
-                      style: const TextStyle(fontSize: 12),
-                    ),
+                    label: Text(category),
                     selected: isSelected,
+                    showCheckmark: false,
                     visualDensity: VisualDensity.compact,
                     materialTapTargetSize:
                         MaterialTapTargetSize.shrinkWrap,
+                    selectedColor: productsPurple,
+                    backgroundColor: Colors.white,
+                    side: BorderSide(
+                      color: isSelected
+                          ? productsPurple
+                          : Colors.grey.shade300,
+                    ),
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? Colors.white
+                          : productsPurple,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                     onSelected: (selected) {
                       if (selected) {
                         setState(() {
@@ -464,26 +516,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         ConnectionState.waiting &&
                     !snapshot.hasData) {
                   return const Center(
-                    child: CircularProgressIndicator(),
+                    child: CircularProgressIndicator(
+                      color: productsBrightPurple,
+                    ),
                   );
                 }
 
                 if (snapshot.hasError) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        'Unable to load watches. Please try again.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  return buildEmptyMessage(
+                    'Unable to load watches',
+                    'Please check your connection and try again.',
                   );
                 }
 
                 final documents = snapshot.data?.docs ?? [];
 
-                final filteredProducts = documents.where((doc) {
-                  final data = doc.data();
+                final filteredProducts = documents.where((document) {
+                  final data = document.data();
 
                   return matchesCategory(
                         (data['category'] ?? '').toString(),
@@ -497,31 +546,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   if (searchText.isNotEmpty) {
                     return buildEmptyMessage(
                       'No matching watches found',
-                      'Try another name or search term.',
+                      'Try another product name or search term.',
                     );
                   }
 
                   if (selectedCategory != 'All') {
                     return buildEmptyMessage(
                       '$selectedCategory watches are not added yet',
-                      'We are working on this collection. Please check back soon!',
+                      'We are preparing this collection. Check back soon!',
                     );
                   }
 
                   return buildEmptyMessage(
                     'No watches available yet',
-                    'Please check back soon for new arrivals.',
+                    'New arrivals will appear here when they are added.',
                   );
                 }
 
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    return buildProductGrid(
-                      filteredProducts,
-                      constraints.maxWidth,
-                    );
-                  },
-                );
+                return buildProductGrid(filteredProducts);
               },
             ),
           ),

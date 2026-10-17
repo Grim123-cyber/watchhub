@@ -4,365 +4,408 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../services/order_service.dart';
 
+const Color ordersPurple = Color(0xFF4C1D95);
+const Color ordersBrightPurple = Color(0xFF7C3AED);
+const Color ordersPalePurple = Color(0xFFF5F3FF);
+
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
 
+  String formatPrice(int price) {
+    return '₦${price.toString().replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => ',',
+        )}';
+  }
+
+  Color statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'delivered':
+        return Colors.green;
+      case 'shipped':
+        return Colors.blue;
+      case 'processing':
+        return Colors.deepPurple;
+      case 'cancelled':
+        return Colors.red;
+      case 'pending':
+      default:
+        return Colors.orange.shade800;
+    }
+  }
+
+  String formatDate(Timestamp? timestamp) {
+    if (timestamp == null) return 'Date unavailable';
+
+    final date = timestamp.toDate();
+
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+
+    return '$day/$month/${date.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final OrderService orderService =
-        OrderService();
+    final OrderService orderService = OrderService();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF9F7FC),
       appBar: AppBar(
-        title: const Text('My Orders'),
+        backgroundColor: ordersPurple,
+        foregroundColor: Colors.white,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/watchhub_logo.png',
+              width: 75,
+              height: 38,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.watch, size: 30);
+              },
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'My Orders',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
       ),
-
       body: StreamBuilder<QuerySnapshot>(
         stream: orderService.getMyOrders(),
-
         builder: (context, snapshot) {
-
-          // LOADING
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                color: ordersBrightPurple,
+              ),
             );
           }
 
-          // ERROR
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  'Something went wrong:\n\n${snapshot.error}',
-                  textAlign: TextAlign.center,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 55,
+                      color: Colors.red,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Unable to load your orders.',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${snapshot.error}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             );
           }
 
-          // NO ORDERS
-          if (!snapshot.hasData ||
-              snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
-                children: [
-
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 80,
-                    color: Colors.grey,
-                  ),
-
-                  SizedBox(height: 20),
-
-                  Text(
-                    'No orders yet.',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight:
-                          FontWeight.bold,
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(25),
+                      decoration: const BoxDecoration(
+                        color: ordersPalePurple,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.receipt_long_outlined,
+                        size: 70,
+                        color: ordersBrightPurple,
+                      ),
                     ),
-                  ),
-
-                  SizedBox(height: 10),
-
-                  Text(
-                    'Your orders will appear here.',
-                    style: TextStyle(
-                      color: Colors.grey,
+                    const SizedBox(height: 22),
+                    const Text(
+                      'No orders yet',
+                      style: TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.bold,
+                        color: ordersPurple,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    Text(
+                      'Your watch purchases will appear here.\nYour next favourite timepiece awaits!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        height: 1.6,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Continue Shopping'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ordersPurple,
+                        side: const BorderSide(
+                          color: ordersBrightPurple,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
-          final documents =
-              snapshot.data!.docs;
+          final documents = snapshot.data!.docs;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: documents.length,
+                itemBuilder: (context, index) {
+                  final document = documents[index];
 
-            itemCount: documents.length,
+                  final data =
+                      document.data() as Map<String, dynamic>;
 
-            itemBuilder: (context, index) {
+                  final String orderId = document.id;
 
-              final document =
-                  documents[index];
+                  final int total =
+                      (data['total'] as num?)?.toInt() ?? 0;
 
-              final data =
-                  document.data()
-                      as Map<String, dynamic>;
+                  final String status =
+                      (data['status'] ?? 'Pending').toString();
 
-              String orderId =
-                  document.id;
+                  final List<dynamic> items =
+                      data['items'] is List ? data['items'] : [];
 
-              int total =
-                  data['total'] ?? 0;
+                  final Timestamp? createdAt =
+                      data['createdAt'] as Timestamp?;
 
-              String status =
-                  data['status'] ?? 'Pending';
+                  final Color badgeColor = statusColor(status);
 
-              List<dynamic> items =
-                  data['items'] ?? [];
+                  final String shortOrderId = orderId.substring(
+                    0,
+                    orderId.length > 8 ? 8 : orderId.length,
+                  );
 
-              Timestamp? createdAt =
-                  data['createdAt'];
-
-              String dateText =
-                  'Date unavailable';
-
-              if (createdAt != null) {
-                DateTime date =
-                    createdAt.toDate();
-
-                dateText =
-                    '${date.day}/${date.month}/${date.year}';
-              }
-
-              return Card(
-                margin:
-                    const EdgeInsets.only(
-                  bottom: 15,
-                ),
-
-                elevation: 3,
-
-                child: Padding(
-                  padding:
-                      const EdgeInsets.all(16),
-
-                  child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-
-                    children: [
-
-                      // ORDER HEADER
-                      Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment
-                                .spaceBetween,
-
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    color: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Colors.grey.shade200,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-
-                          const Text(
-                            'Order',
-                            style:
-                                TextStyle(
-                              fontSize: 18,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
-                            ),
-                          ),
-
-                          Text(
-                            '#${orderId.substring(
-                              0,
-                              orderId.length > 8
-                                  ? 8
-                                  : orderId.length,
-                            )}',
-
-                            style:
-                                TextStyle(
-                              color: Colors
-                                  .grey.shade600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(
-                        height: 10,
-                      ),
-
-                      // DATE
-                      Text(
-                        'Date: $dateText',
-                        style: TextStyle(
-                          color: Colors
-                              .grey.shade700,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 10,
-                      ),
-
-                      // STATUS
-                      Row(
-                        children: [
-
-                          const Text(
-                            'Status: ',
-                            style:
-                                TextStyle(
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
-                          ),
-
-                          Container(
-                            padding:
-                                const EdgeInsets
-                                    .symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-
-                            decoration:
-                                BoxDecoration(
-                              color:
-                                  Colors.orange
-                                      .shade50,
-
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                20,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: ordersPalePurple,
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.receipt_long_outlined,
+                                  color: ordersBrightPurple,
+                                  size: 28,
+                                ),
                               ),
-                            ),
-
-                            child: Text(
-                              status,
-
-                              style: TextStyle(
-                                color:
-                                    Colors.orange
-                                        .shade800,
-
-                                fontWeight:
-                                    FontWeight
-                                        .bold,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Order',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: ordersPurple,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '#$shortOrderId',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Date: ${formatDate(createdAt)}',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const Divider(
-                        height: 30,
-                      ),
-
-                      // PRODUCTS
-                      const Text(
-                        'Items',
-                        style:
-                            TextStyle(
-                          fontSize: 16,
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height: 10,
-                      ),
-
-                      ...items.map(
-                        (item) {
-
-                          String name =
-                              item['name'] ??
-                                  'Unknown';
-
-                          int price =
-                              item['price'] ??
-                                  0;
-
-                          int quantity =
-                              item['quantity'] ??
-                                  1;
-
-                          return Padding(
-                            padding:
-                                const EdgeInsets
-                                    .only(
-                              bottom: 8,
-                            ),
-
-                            child: Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment
-                                      .spaceBetween,
-
-                              children: [
-
-                                Expanded(
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 7,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: badgeColor.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius:
+                                        BorderRadius.circular(20),
+                                  ),
                                   child: Text(
-                                    '$name x$quantity',
+                                    status,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: badgeColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
+                              ),
+                            ],
+                          ),
 
-                                Text(
-                                  '₦$price',
-                                  style:
-                                      const TextStyle(
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-
-                      const Divider(
-                        height: 25,
-                      ),
-
-                      // TOTAL
-                      Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment
-                                .spaceBetween,
-
-                        children: [
+                          const Divider(height: 30),
 
                           const Text(
-                            'Total',
-
-                            style:
-                                TextStyle(
-                              fontSize: 18,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
+                            'Items Ordered',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: ordersPurple,
                             ),
                           ),
 
-                          Text(
-                            '₦$total',
+                          const SizedBox(height: 12),
 
-                            style:
-                                const TextStyle(
-                              fontSize: 20,
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
-                            ),
+                          if (items.isEmpty)
+                            Text(
+                              'Order item details are unavailable.',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                              ),
+                            )
+                          else
+                            ...items.map((item) {
+                              final Map<String, dynamic> product =
+                                  item is Map<String, dynamic>
+                                      ? item
+                                      : Map<String, dynamic>.from(item as Map);
+
+                              final String name =
+                                  (product['name'] ?? 'Unknown Product')
+                                      .toString();
+
+                              final int price =
+                                  (product['price'] as num?)?.toInt() ?? 0;
+
+                              final int quantity =
+                                  (product['quantity'] as num?)?.toInt() ?? 1;
+
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.only(bottom: 12),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.watch_outlined,
+                                      color: ordersBrightPurple,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        '$name × $quantity',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      formatPrice(price * quantity),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+
+                          const Divider(height: 24),
+
+                          Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Order Total',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                formatPrice(total),
+                                style: const TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                  color: ordersPurple,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                    ),
+                  );
+                },
+              ),
+            ),
           );
         },
       ),
     );
   }
 }
-
